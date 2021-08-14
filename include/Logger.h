@@ -1,13 +1,21 @@
 #pragma once
 
+#include "Observer.h"
+
 #include <iostream>
 #include <fstream>
 #include <chrono>
 
-class Logger
+class Logger : public Observer
 {
 public:
-    static void logBulk(const std::deque<std::string>& bulk, std::ostream& ostream = std::cout)
+    void update(std::deque<std::string> bulk) override
+    {
+        logBulk(bulk);
+        saveBulkToLogFile(bulk);
+    }
+
+    void logBulk(const std::deque<std::string>& bulk, std::ostream& ostream = std::cout)
     {
         if (bulk.empty())
         {
@@ -26,7 +34,7 @@ public:
         ostream << std::endl;
     }
 
-    static void saveBulkToLogFile(const std::deque<std::string>& bulk)
+    void saveBulkToLogFile(const std::deque<std::string>& bulk)
     {
         std::string timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>
                                                        (std::chrono::system_clock::now().time_since_epoch()).count());

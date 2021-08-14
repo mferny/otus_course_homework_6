@@ -1,7 +1,5 @@
-#include "CommandProcessor.h"
-#include "Logger.h"
-
-#include <deque>
+#include "include/CommandProcessor.h"
+#include "include/Logger.h"
 
 int main(int argc, char** argv)
 {

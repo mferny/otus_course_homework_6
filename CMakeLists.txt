@@ -19,7 +19,7 @@ file(GLOB SRCS
         "${PROJECT_SOURCE_DIR}/*.cpp"
         )
 
-add_executable(bulk ${SRCS} include/Observable.h)
+add_executable(bulk ${SRCS})
 
 install(TARGETS bulk RUNTIME DESTINATION bin)
 

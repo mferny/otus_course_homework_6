@@ -3,8 +3,6 @@
 #include "Logger.h"
 
 #include <vector>
-#include <string>
-#include <deque>
 
 class BlockProcessor
 {

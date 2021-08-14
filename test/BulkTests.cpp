@@ -4,6 +4,26 @@
 
 #include <boost/test/unit_test.hpp>
 #include <thread>
+#include <regex>
+#include <filesystem>
+#include <algorithm>
+
+std::vector<std::string> listFiles(std::filesystem::path dir, std::regex filename)
+{
+    std::vector<std::string> result;
+
+    const std::filesystem::directory_iterator end;
+    for(std::filesystem::directory_iterator iter { dir } ; iter != end ; ++iter )
+    {
+        if(std::filesystem::is_regular_file(*iter) and
+            std::regex_match(iter->path().string(), filename))
+        {
+            result.push_back(iter->path().string());
+        }
+    }
+
+    return result ;
+}
 
 BOOST_AUTO_TEST_SUITE(CheckBase)
 
@@ -19,25 +39,27 @@ BOOST_AUTO_TEST_CASE(CheckFile)
     for(const auto cmd : commands)
     {
         processor.onEvent(cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
-    std::string timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>
-            (std::chrono::system_clock::now().time_since_epoch()).count());
-    std::string filename = "bulk";
-    filename.append(timestamp).append(".log");
+    const std::regex filename("\\.\\/bulk\\d{10}\\.log");
+    const auto res = listFiles(".", filename);
 
     std::fstream fstream;
-    fstream.open(filename, std::fstream::in);
-    if (not fstream.is_open())
+    for (const auto file : res)
     {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
+        fstream.open(file, std::fstream::in);
+        if (not fstream.is_open())
+        {
+            std::cerr << "Error opening file: " << file << std::endl;
+            return;
+        }
 
-    std::string input;
-    while (std::getline(fstream, input))
-    {
+        std::string input;
+        std::getline(fstream, input);
         BOOST_CHECK_EQUAL(input, "bulk: cmd1, cmd2, cmd3");
+
+        std::remove(file.c_str());
     }
 }
 
@@ -66,34 +88,40 @@ BOOST_AUTO_TEST_CASE(CheckFile)
         for(const auto cmd : commands)
         {
             processor.onEvent(cmd);
-            //std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
 
-        std::string timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>
-                (std::chrono::system_clock::now().time_since_epoch()).count());
-        std::string filename = "bulk";
-        filename.append(timestamp).append(".log");
+        const std::regex filename("\\.\\/bulk\\d{10}\\.log");
+        auto res = listFiles(".", filename);
+        std::sort(res.begin(), res.end());
 
-        std::fstream fstream;
-        fstream.open(filename, std::fstream::in);
-        if (not fstream.is_open())
-        {
-            std::cerr << "Error opening file: " << filename << std::endl;
-            return;
-        }
-
-        // keep all strings in one file for simpleness
         std::vector<std::string> results = {
                 "bulk: cmd1, cmd2, cmd3",
                 "bulk: cmd4, cmd5",
                 "bulk: cmd5, cmd6, cmd7, cmd8, cmd9"
         };
-        std::string input;
-        int i = 0;
-        while (std::getline(fstream, input))
+
+        std::fstream fstream;
+        for (int i = 0; i < res.size() and i < results.size(); i++)
         {
+            fstream.open(res[i], std::fstream::in);
+            if (not fstream.is_open())
+            {
+                std::cerr << "Error opening file: " << res[i] << std::endl;
+                return;
+            }
+
+            std::string input;
+            std::getline(fstream, input);
             BOOST_CHECK_EQUAL(input, results[i]);
-            i++;
+            std::cout << input << " is equal to " << results[i] << std::endl;
+            fstream.close();
+            std::remove(res[i].c_str());
+        }
+
+        for (const auto& file : res)
+        {
+            std::remove(file.data());
         }
     }
 

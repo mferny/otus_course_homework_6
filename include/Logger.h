@@ -36,8 +36,13 @@ public:
 
     void saveBulkToLogFile(const std::deque<std::string>& bulk)
     {
+        if (bulk.empty())
+        {
+            return;
+        }
+
         std::string timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>
-                                                       (std::chrono::system_clock::now().time_since_epoch()).count());
+                (std::chrono::system_clock::now().time_since_epoch()).count());
         std::string filename = "bulk";
         filename.append(timestamp).append(".log");
 
